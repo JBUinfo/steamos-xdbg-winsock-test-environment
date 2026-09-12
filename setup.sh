@@ -115,6 +115,7 @@ xdbg_log="${TMPDIR:-/tmp}/ws2-hook-xdbg-$$.log"
 launcher_pid=''
 server_pid=''
 existing_state=''
+server_log=''
 
 cleanup() {
     if [[ -n "$server_pid" && "$no_wait" == 0 ]]; then
@@ -122,6 +123,17 @@ cleanup() {
     fi
 }
 trap cleanup EXIT
+
+open_tail_window() {
+    local label=$1 path=$2
+    if command -v konsole >/dev/null 2>&1; then
+        konsole --separate --hold -e bash -c \
+            'printf "\\n%s\\n\\n" "$1"; exec tail -F -- "$2"' \
+            ws2-log-window "$label" "$path" >/dev/null 2>&1 &
+        return 0
+    fi
+    return 1
+}
 
 mcp() {
     local method=$1 args=${2:-\{\}}
@@ -188,16 +200,22 @@ fi
 
 if ((no_server == 0)) && [[ -n "$server" && -z "$existing_state" ]]; then
     server_log="${TMPDIR:-/tmp}/ws2-hook-server-$$.log"
+    if ss -ltn 2>/dev/null | grep -q "127.0.0.1:$port"; then
+        die "Port $port is already in use; stop the previous fixture server or choose another port with --port"
+    fi
     printf 'Starting server (%s interval) in the shared prefix...\n' "$interval"
     "$proton" runinprefix "$server" -port "$port" -interval "$interval" -message "$message" >"$server_log" 2>&1 &
     server_pid=$!
     ready=0
     for _ in $(seq 1 40); do
-        if ss -ltn 2>/dev/null | grep -q "127.0.0.1:$port"; then ready=1; break; fi
+        if grep -q 'winsock server listening on' "$server_log"; then ready=1; break; fi
         kill -0 "$server_pid" 2>/dev/null || die "Server exited; see $server_log"
         sleep .25
     done
     ((ready == 1)) || die "Server did not open port $port; see $server_log"
+    if ! open_tail_window 'WinSock server output' "$server_log"; then
+        printf 'Server output: %s\n' "$server_log"
+    fi
 fi
 
 if [[ -n "$existing_state" ]]; then
@@ -236,7 +254,7 @@ hook_win=$("$proton" runinprefix winepath -w "$dll" | tr -d '\r\n')
 "$proton" runinprefix "$injector" inject --process-id "$selected" "$hook_win"
 
 if command -v konsole >/dev/null 2>&1; then
-    konsole --separate --hold -e tail -F "$log" >/dev/null 2>&1 &
+    open_tail_window 'Injected hook output (hex + ASCII)' "$log"
     printf 'Log window opened: %s\n' "$log"
 else
     printf 'Follow the log manually: %s\n' "$log"

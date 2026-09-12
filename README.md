@@ -2,7 +2,7 @@
 
 This small repository contains the diagnostic DLL, its MinHook source, the x64 injector, and a localhost server/client pair; all project paths are relative to this directory.
 
-`setup.sh` builds the DLL, starts the fixture server outside x64dbg, opens the fixture client in x64dbg, lists Windows PIDs from the shared Proton prefix, lets you choose the client, injects the hook, and opens a live log window. The server sends a message every three minutes by default; the client replies to every message.
+`setup.sh` builds the DLL, starts the fixture server outside x64dbg, opens the fixture client in x64dbg, lists Windows PIDs from the shared Proton prefix, lets you choose the client, injects the hook, and opens live server and hook-log windows. The server sends a message every three minutes by default; the client replies to every message.
 
 ## Requirements
 
