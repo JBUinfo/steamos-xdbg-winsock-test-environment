@@ -17,7 +17,7 @@ This small repository contains the diagnostic DLL, its MinHook source, the x64 i
 ./setup.sh
 ```
 
-The script asks which Windows PID should receive the DLL. Use `--interval 5s` for a quick test, or `--target /path/to/program.exe --no-server` for another executable; add `--target-cmdline '...'` for its arguments.
+Run it from a terminal rather than double-clicking, so errors and log paths remain visible. The script asks which Windows PID should receive the DLL. Use `--interval 5s` for a quick test, or `--target /path/to/program.exe --no-server` for another executable; add `--target-cmdline '...'` for its arguments. If the default port is busy, choose another with `--port N`.
 
 The fixture sources and rebuild command are under `src/winsock-test/`; the generated server/client binaries are under `examples/`.
 
