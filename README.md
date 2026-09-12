@@ -11,7 +11,7 @@ The fixture server is terminated automatically when the x64dbg launcher exits.
 - SteamOS Proton 10 (or another compatible Proton build).
 - [SteamOS xdbg launcher](https://github.com/JBUinfo/steamos-xdbg-launcher), with x64dbg and the [x64dbg MCP server](https://github.com/SetsunaYukiOvO/x64dbg-mcp); override the launcher path with `WS2_LAUNCHER` if needed.
 - The private prefix `$HOME/xdbg/proton-prefix` (override with `--compatdata`).
-- MinGW-w64 only when rebuilding the DLLs.
+- MinGW-w64 when rebuilding the DLLs; Go is used to rebuild the fixture server/client (the checked-in binaries work without Go).
 
 ## Run
 
@@ -21,7 +21,9 @@ The fixture server is terminated automatically when the x64dbg launcher exits.
 
 Run it from a terminal rather than double-clicking, so errors and log paths remain visible. The script asks which Windows PID should receive the DLL. Use `--interval 5s` for a quick test, or `--target /path/to/program.exe --no-server` for another executable; add `--target-cmdline '...'` for its arguments. If the default port is busy, choose another with `--port N`.
 
-The fixture sources and rebuild command are under `src/winsock-test/`; the generated server/client binaries are under `examples/`.
+The fixture sources and rebuild command are under `src/winsock-test/`; `setup.sh` rebuilds the server/client automatically when Go is installed, and the generated binaries are under `examples/`.
+
+The `--interval` option controls the running server. Changing the Go source default only affects direct launches without an explicit `-interval` argument.
 
 The x64 injector is `bin/win-dll-injector-windows-amd64.exe`; the included 32-bit DLL is built for PE32 targets, but an x86 injector is not included yet.
 

@@ -75,6 +75,11 @@ command -v ss >/dev/null || die 'ss is required'
 
 if ((no_build == 0)); then
     "$ROOT/build.sh"
+    if command -v go >/dev/null 2>&1; then
+        "$ROOT/src/winsock-test/build.sh"
+    else
+        printf 'Go is not installed; using the checked-in fixture binaries.\n' >&2
+    fi
 fi
 
 pe=$(file -L -b -- "$target" 2>/dev/null || true)
