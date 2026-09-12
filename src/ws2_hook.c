@@ -139,6 +139,24 @@ static void log_packet(const char *operation, SOCKET socket,
     write_log("%s", line);
 }
 
+/*
+ * Custom packet-processing point.
+ *
+ * For send, this runs before the original WinSock call.  For recv, it runs
+ * after the original call and receives only the bytes that were read.  Keep
+ * the buffer unchanged to inspect traffic without changing or consuming it.
+ * The hook guard is active while this function runs, so WinSock calls made by
+ * custom code bypass these hooks and do not recurse.
+ */
+static void user_process_packet(const char *operation,
+                                const char *buffer, int length)
+{
+    (void)operation;
+    (void)buffer;
+    (void)length;
+    /* Add custom inspection code here. */
+}
+
 static int WSAAPI hooked_send(SOCKET socket, const char *buffer,
                               int length, int flags)
 {
@@ -151,6 +169,7 @@ static int WSAAPI hooked_send(SOCKET socket, const char *buffer,
             : SOCKET_ERROR;
     }
     set_in_hook(1);
+    user_process_packet("send", buffer, length);
     result = g_original_send(socket, buffer, length, flags);
     if (result == SOCKET_ERROR) {
         error_code = WSAGetLastError();
@@ -175,6 +194,9 @@ static int WSAAPI hooked_recv(SOCKET socket, char *buffer,
     result = g_original_recv(socket, buffer, length, flags);
     if (result == SOCKET_ERROR) {
         error_code = WSAGetLastError();
+    }
+    if (result > 0) {
+        user_process_packet("recv", buffer, result);
     }
     set_in_hook(0);
     log_packet("recv", socket, buffer, result > 0 ? result : 0,

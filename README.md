@@ -31,4 +31,6 @@ The x64 injector is `bin/win-dll-injector-windows-amd64.exe`; the included 32-bi
 
 The hook logs `send` and `recv` calls to the target prefix's `pfx/drive_c/users/steamuser/AppData/Local/Temp/ws2-hook.log` and does not change packet contents.
 
+To add custom processing, edit `user_process_packet` in `src/ws2_hook.c`. It sees outgoing bytes before `send` and incoming bytes after `recv`; leave the buffer unchanged to inspect traffic and let it continue normally, then rebuild with `./build.sh`.
+
 Use this only with processes you own or are authorised to test.
