@@ -12,7 +12,7 @@ target_cmdline="${WS2_TARGET_CMDLINE:-}"
 port="${WS2_PORT:-27015}"
 message="${WS2_MESSAGE:-ping from winsock server}"
 reply="${WS2_REPLY:-reply from winsock client}"
-interval="${WS2_INTERVAL:-3m}"
+interval="${WS2_INTERVAL:-}"
 no_build=0
 no_server=0
 no_reuse=0
@@ -233,8 +233,14 @@ if ((no_server == 0)) && [[ -n "$server" && -z "$existing_state" ]]; then
     if ss -ltn 2>/dev/null | grep -q "127.0.0.1:$port"; then
         die "Port $port is already in use; stop the previous fixture server or choose another port with --port"
     fi
-    printf 'Starting server (%s interval) in the shared prefix...\n' "$interval"
-    "$proton" runinprefix "$server" -port "$port" -interval "$interval" -message "$message" >"$server_log" 2>&1 &
+    if [[ -n "$interval" ]]; then
+        printf 'Starting server (%s interval) in the shared prefix...\n' "$interval"
+    else
+        printf 'Starting server (compiled default interval) in the shared prefix...\n'
+    fi
+    server_args=(-port "$port" -message "$message")
+    [[ -z "$interval" ]] || server_args+=(-interval "$interval")
+    "$proton" runinprefix "$server" "${server_args[@]}" >"$server_log" 2>&1 &
     server_pid=$!
     ready=0
     for _ in $(seq 1 40); do
@@ -258,8 +264,7 @@ else
     XDBG_DISABLE_SCYLLAHIDE=1 "$launcher" "${args[@]}" >"$xdbg_log" 2>&1 &
     launcher_pid=$!
     if ! wait_mcp || ! continue_xdbg; then
-        printf 'MCP could not continue xdbg automatically; press F9 twice, then press Enter here.\n'
-        read -r
+        printf 'MCP could not continue xdbg automatically; continuing to PID selection. Press F9 in x64dbg after injection if the target is paused.\n'
     fi
     if [[ -n "$server_pid" && -n "$server_win_pid" ]]; then
         watch_server_until_xdbg_exits "$launcher_pid" "$server_pid" "$server_win_pid"

@@ -23,7 +23,9 @@ Run it from a terminal rather than double-clicking, so errors and log paths rema
 
 The fixture sources and rebuild command are under `src/winsock-test/`; `setup.sh` rebuilds the server/client automatically when Go is installed, and the generated binaries are under `examples/`.
 
-The `--interval` option controls the running server. Changing the Go source default only affects direct launches without an explicit `-interval` argument.
+The `--interval` option controls the running server. If omitted, `setup.sh` leaves the flag unset and uses the compiled default from `main.go` (three minutes in the checked-in source).
+
+If the MCP server is unavailable, setup continues to PID selection; press F9 in x64dbg after injection if the target is paused.
 
 The x64 injector is `bin/win-dll-injector-windows-amd64.exe`; the included 32-bit DLL is built for PE32 targets, but an x86 injector is not included yet.
 
