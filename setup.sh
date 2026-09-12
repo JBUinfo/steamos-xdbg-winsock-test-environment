@@ -114,13 +114,24 @@ mcp_config="$(dirname -- "$launcher")/mcp_config.json"
 xdbg_log="${TMPDIR:-/tmp}/ws2-hook-xdbg-$$.log"
 launcher_pid=''
 server_pid=''
+server_win_pid=''
 existing_state=''
 server_log=''
 
-cleanup() {
-    if [[ -n "$server_pid" && "$no_wait" == 0 ]]; then
-        kill "$server_pid" 2>/dev/null || true
+stop_server() {
+    if [[ -n "$server_win_pid" ]]; then
+        "$proton" runinprefix taskkill.exe /PID "$server_win_pid" /F >/dev/null 2>&1 || true
+        server_win_pid=''
     fi
+    if [[ -n "$server_pid" ]]; then
+        kill "$server_pid" 2>/dev/null || true
+        wait "$server_pid" 2>/dev/null || true
+        server_pid=''
+    fi
+}
+
+cleanup() {
+    if [[ "$no_wait" == 0 ]]; then stop_server; fi
 }
 trap cleanup EXIT
 
@@ -133,6 +144,20 @@ open_tail_window() {
         return 0
     fi
     return 1
+}
+
+watch_server_until_xdbg_exits() {
+    local watched_pid=$1 server_host_pid=$2 server_windows_pid=$3
+    nohup bash -c '
+        while kill -0 "$1" 2>/dev/null; do sleep 1; done
+        export STEAM_COMPAT_DATA_PATH="$3"
+        export STEAM_COMPAT_CLIENT_INSTALL_PATH="$4"
+        export WINEDEBUG=-all
+        "$2" runinprefix taskkill.exe /PID "$5" /F >/dev/null 2>&1 || true
+        kill "$6" 2>/dev/null || true
+    ' ws2-server-watcher "$watched_pid" "$proton" "$compat" \
+        "$STEAM_COMPAT_CLIENT_INSTALL_PATH" "$server_windows_pid" "$server_host_pid" \
+        >/dev/null 2>&1 &
 }
 
 mcp() {
@@ -208,7 +233,8 @@ if ((no_server == 0)) && [[ -n "$server" && -z "$existing_state" ]]; then
     server_pid=$!
     ready=0
     for _ in $(seq 1 40); do
-        if grep -q 'winsock server listening on' "$server_log"; then ready=1; break; fi
+        server_win_pid=$(sed -n 's/.*(pid \([0-9][0-9]*\)).*/\1/p' "$server_log" | head -n 1)
+        if [[ -n "$server_win_pid" ]]; then ready=1; break; fi
         kill -0 "$server_pid" 2>/dev/null || die "Server exited; see $server_log"
         sleep .25
     done
@@ -229,6 +255,9 @@ else
     if ! wait_mcp || ! continue_xdbg; then
         printf 'MCP could not continue xdbg automatically; press F9 twice, then press Enter here.\n'
         read -r
+    fi
+    if [[ -n "$server_pid" && -n "$server_win_pid" ]]; then
+        watch_server_until_xdbg_exits "$launcher_pid" "$server_pid" "$server_win_pid"
     fi
 fi
 

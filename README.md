@@ -4,6 +4,8 @@ This small repository contains the diagnostic DLL, its MinHook source, the x64 i
 
 `setup.sh` builds the DLL, starts the fixture server outside x64dbg, opens the fixture client in x64dbg, lists Windows PIDs from the shared Proton prefix, lets you choose the client, injects the hook, and opens live server and hook-log windows. The server sends a message every three minutes by default; the client replies to every message.
 
+The fixture server is terminated automatically when the x64dbg launcher exits.
+
 ## Requirements
 
 - SteamOS Proton 10 (or another compatible Proton build).
